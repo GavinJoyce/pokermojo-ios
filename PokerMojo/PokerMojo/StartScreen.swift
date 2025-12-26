@@ -10,34 +10,39 @@ struct StartScreen: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let scale = min(max(geometry.size.width / 1024, 0.6), 1.3)
-            let isCompact = geometry.size.width < 600
-            let leaderboardMaxWidth: CGFloat = min(geometry.size.width * 0.45, 500)
+            let availableWidth = geometry.size.width
+            let availableHeight = geometry.size.height
+            let scale = min(max(min(availableWidth / 1024, availableHeight / 700), 0.5), 1.5)
+            let isCompact = availableWidth < 600
+            let contentWidth = min(availableWidth - 40 * scale, 900 * scale)
 
             ZStack {
                 ScrollView {
                     VStack(spacing: 20 * scale) {
-                        Text("Compare 20 poker hands as fast as you can!")
-                            .font(.system(size: 18 * scale))
-                            .multilineTextAlignment(.center)
+                        // Description text
+                        VStack(spacing: 8 * scale) {
+                            Text("Compare 20 poker hands as fast as you can!")
+                                .font(.system(size: 18 * scale))
+                                .multilineTextAlignment(.center)
 
-                        Text("Get all 20 correct to make the leaderboard.")
-                            .font(.system(size: 18 * scale))
-                            .multilineTextAlignment(.center)
-                            .opacity(0.8)
+                            Text("Get all 20 correct to make the leaderboard.")
+                                .font(.system(size: 18 * scale))
+                                .multilineTextAlignment(.center)
+                                .opacity(0.8)
+                        }
 
-                        // Mode buttons - stack vertically on very compact screens
+                        // Mode buttons
                         if isCompact {
                             VStack(spacing: 15 * scale) {
-                                ModeButton(icon: "⭐", title: "Standard", subtitle: "Clear-cut hand differences", scale: scale) {
+                                ModeButton(icon: "⭐", title: "Standard", subtitle: "Clear-cut hand differences", scale: scale, maxWidth: contentWidth) {
                                     game.startGame(mode: .standard)
                                 }
 
-                                ModeButton(icon: "🔥", title: "Hard", subtitle: "Tricky kickers & close calls", scale: scale) {
+                                ModeButton(icon: "🔥", title: "Hard", subtitle: "Tricky kickers & close calls", scale: scale, maxWidth: contentWidth) {
                                     game.startGame(mode: .hard)
                                 }
                             }
-                            .padding(.top, 20 * scale)
+                            .padding(.top, 10 * scale)
                         } else {
                             HStack(spacing: 20 * scale) {
                                 ModeButton(icon: "⭐", title: "Standard", subtitle: "Clear-cut hand differences", scale: scale) {
@@ -48,61 +53,57 @@ struct StartScreen: View {
                                     game.startGame(mode: .hard)
                                 }
                             }
-                            .padding(.top, 20 * scale)
+                            .frame(maxWidth: contentWidth)
+                            .padding(.top, 10 * scale)
                         }
 
-                        // Split leaderboards - stack vertically on compact screens
-                        if !game.leaderboard.isEmpty {
-                            if isCompact {
-                                VStack(spacing: 20 * scale) {
-                                    LeaderboardPanel(
-                                        icon: "⭐",
-                                        title: "Standard",
-                                        entries: game.getLeaderboardByMode("standard"),
-                                        game: game,
-                                        scale: scale,
-                                        maxWidth: .infinity
-                                    )
+                        // Leaderboards - always show both panels (even if empty)
+                        if isCompact {
+                            VStack(spacing: 20 * scale) {
+                                LeaderboardPanel(
+                                    title: "Standard",
+                                    entries: game.getLeaderboardByMode("standard"),
+                                    game: game,
+                                    scale: scale
+                                )
+                                .frame(maxWidth: contentWidth)
 
-                                    LeaderboardPanel(
-                                        icon: "🔥",
-                                        title: "Hard",
-                                        entries: game.getLeaderboardByMode("hard"),
-                                        game: game,
-                                        scale: scale,
-                                        maxWidth: .infinity
-                                    )
-                                }
-                                .padding(.top, 20 * scale)
-                            } else {
-                                HStack(alignment: .top, spacing: 20 * scale) {
-                                    LeaderboardPanel(
-                                        icon: "⭐",
-                                        title: "Standard",
-                                        entries: game.getLeaderboardByMode("standard"),
-                                        game: game,
-                                        scale: scale,
-                                        maxWidth: leaderboardMaxWidth
-                                    )
-
-                                    LeaderboardPanel(
-                                        icon: "🔥",
-                                        title: "Hard",
-                                        entries: game.getLeaderboardByMode("hard"),
-                                        game: game,
-                                        scale: scale,
-                                        maxWidth: leaderboardMaxWidth
-                                    )
-                                }
-                                .padding(.top, 20 * scale)
+                                LeaderboardPanel(
+                                    title: "Hard",
+                                    entries: game.getLeaderboardByMode("hard"),
+                                    game: game,
+                                    scale: scale
+                                )
+                                .frame(maxWidth: contentWidth)
                             }
+                            .padding(.top, 20 * scale)
+                        } else {
+                            HStack(alignment: .top, spacing: 20 * scale) {
+                                LeaderboardPanel(
+                                    title: "Standard",
+                                    entries: game.getLeaderboardByMode("standard"),
+                                    game: game,
+                                    scale: scale
+                                )
+
+                                LeaderboardPanel(
+                                    title: "Hard",
+                                    entries: game.getLeaderboardByMode("hard"),
+                                    game: game,
+                                    scale: scale
+                                )
+                            }
+                            .frame(maxWidth: contentWidth)
+                            .padding(.top, 20 * scale)
                         }
 
                         Spacer(minLength: 40 * scale)
                     }
-                    .padding(.top, 40 * scale)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 20 * scale)
                     .padding(.horizontal, 20 * scale)
                 }
+                .frame(maxWidth: .infinity)
 
                 // Toast
                 if let toast = game.deleteToast {
@@ -130,6 +131,7 @@ struct ModeButton: View {
     let title: String
     let subtitle: String
     var scale: CGFloat = 1.0
+    var maxWidth: CGFloat? = nil
     let action: () -> Void
 
     var body: some View {
@@ -146,9 +148,9 @@ struct ModeButton: View {
                     .opacity(0.7)
             }
             .foregroundColor(.white)
-            .frame(minWidth: 200 * scale)
-            .padding(.vertical, 30 * scale)
-            .padding(.horizontal, 40 * scale)
+            .frame(maxWidth: maxWidth ?? .infinity, minHeight: 80 * scale)
+            .padding(.vertical, 25 * scale)
+            .padding(.horizontal, 30 * scale)
             .background(Color.white.opacity(0.1))
             .cornerRadius(16)
             .overlay(
@@ -161,34 +163,29 @@ struct ModeButton: View {
 }
 
 struct LeaderboardPanel: View {
-    let icon: String
     let title: String
     let entries: [LeaderboardEntry]
     let game: GameState
     var scale: CGFloat = 1.0
-    var maxWidth: CGFloat = 400
 
     var body: some View {
         VStack(spacing: 15 * scale) {
-            HStack(spacing: 8 * scale) {
-                Text(icon)
-                    .font(.system(size: 18 * scale))
-                Text(title)
-                    .font(.system(size: 20 * scale, weight: .bold))
-            }
+            Text(title)
+                .font(.system(size: 20 * scale, weight: .bold))
 
             if entries.isEmpty {
                 Text("No scores yet")
                     .font(.system(size: 15 * scale))
                     .opacity(0.6)
                     .padding(.vertical, 20 * scale)
+                    .frame(maxWidth: .infinity)
             } else {
                 VStack(spacing: 5 * scale) {
                     ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                         HStack {
                             Text("#\(index + 1)")
                                 .font(.system(size: 15 * scale, weight: .bold))
-                                .frame(width: 30 * scale, alignment: .leading)
+                                .frame(width: 40 * scale, alignment: .leading)
 
                             Text(entry.name)
                                 .font(.system(size: 15 * scale))
@@ -209,8 +206,8 @@ struct LeaderboardPanel: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        .padding(.horizontal, 12 * scale)
-                        .padding(.vertical, 8 * scale)
+                        .padding(.horizontal, 15 * scale)
+                        .padding(.vertical, 10 * scale)
                         .background(entry.isNew ? Color(red: 1, green: 0.84, blue: 0).opacity(0.2) : Color.white.opacity(0.05))
                         .cornerRadius(8)
                         .overlay(
@@ -222,7 +219,7 @@ struct LeaderboardPanel: View {
             }
         }
         .padding(20 * scale)
-        .frame(minWidth: 280 * scale, maxWidth: maxWidth)
+        .frame(maxWidth: .infinity)
         .background(Color.black.opacity(0.2))
         .cornerRadius(16)
     }
@@ -241,42 +238,36 @@ struct LeaderboardView: View {
         if isCompact {
             VStack(spacing: 20 * scale) {
                 LeaderboardPanel(
-                    icon: "⭐",
                     title: "Standard",
                     entries: game.getLeaderboardByMode("standard"),
                     game: game,
-                    scale: scale,
-                    maxWidth: .infinity
+                    scale: scale
                 )
 
                 LeaderboardPanel(
-                    icon: "🔥",
                     title: "Hard",
                     entries: game.getLeaderboardByMode("hard"),
                     game: game,
-                    scale: scale,
-                    maxWidth: .infinity
+                    scale: scale
                 )
             }
         } else {
             HStack(alignment: .top, spacing: 20 * scale) {
                 LeaderboardPanel(
-                    icon: "⭐",
                     title: "Standard",
                     entries: game.getLeaderboardByMode("standard"),
                     game: game,
-                    scale: scale,
-                    maxWidth: maxWidth
+                    scale: scale
                 )
+                .frame(maxWidth: maxWidth)
 
                 LeaderboardPanel(
-                    icon: "🔥",
                     title: "Hard",
                     entries: game.getLeaderboardByMode("hard"),
                     game: game,
-                    scale: scale,
-                    maxWidth: maxWidth
+                    scale: scale
                 )
+                .frame(maxWidth: maxWidth)
             }
         }
     }
