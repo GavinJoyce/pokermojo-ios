@@ -60,34 +60,63 @@ struct GameScreen: View {
 
                     Spacer()
 
-                    // Hands
+                    // Hands - stack vertically in portrait, horizontally in landscape
                     if let handA = game.handA, let handB = game.handB {
-                        HStack(spacing: metrics.handSpacing) {
-                            HandContainer(
-                                label: "Hand A",
-                                hand: handA,
-                                isHidden: game.countdown != nil,
-                                isCorrect: game.showResult && game.correctHand == "A",
-                                isIncorrect: game.showResult && game.selectedHand == "A" && game.correctHand != "A",
-                                showHandType: game.showResult && game.selectedHand != game.correctHand,
-                                metrics: metrics
-                            ) {
-                                game.selectHand("A")
-                            }
+                        if metrics.isPortrait {
+                            VStack(spacing: metrics.handSpacing) {
+                                HandContainer(
+                                    label: "Hand A",
+                                    hand: handA,
+                                    isHidden: game.countdown != nil,
+                                    isCorrect: game.showResult && game.correctHand == "A",
+                                    isIncorrect: game.showResult && game.selectedHand == "A" && game.correctHand != "A",
+                                    showHandType: game.showResult && game.selectedHand != game.correctHand,
+                                    metrics: metrics
+                                ) {
+                                    game.selectHand("A")
+                                }
 
-                            HandContainer(
-                                label: "Hand B",
-                                hand: handB,
-                                isHidden: game.countdown != nil,
-                                isCorrect: game.showResult && game.correctHand == "B",
-                                isIncorrect: game.showResult && game.selectedHand == "B" && game.correctHand != "B",
-                                showHandType: game.showResult && game.selectedHand != game.correctHand,
-                                metrics: metrics
-                            ) {
-                                game.selectHand("B")
+                                HandContainer(
+                                    label: "Hand B",
+                                    hand: handB,
+                                    isHidden: game.countdown != nil,
+                                    isCorrect: game.showResult && game.correctHand == "B",
+                                    isIncorrect: game.showResult && game.selectedHand == "B" && game.correctHand != "B",
+                                    showHandType: game.showResult && game.selectedHand != game.correctHand,
+                                    metrics: metrics
+                                ) {
+                                    game.selectHand("B")
+                                }
                             }
+                            .padding(.horizontal, metrics.handContainerPadding)
+                        } else {
+                            HStack(spacing: metrics.handSpacing) {
+                                HandContainer(
+                                    label: "Hand A",
+                                    hand: handA,
+                                    isHidden: game.countdown != nil,
+                                    isCorrect: game.showResult && game.correctHand == "A",
+                                    isIncorrect: game.showResult && game.selectedHand == "A" && game.correctHand != "A",
+                                    showHandType: game.showResult && game.selectedHand != game.correctHand,
+                                    metrics: metrics
+                                ) {
+                                    game.selectHand("A")
+                                }
+
+                                HandContainer(
+                                    label: "Hand B",
+                                    hand: handB,
+                                    isHidden: game.countdown != nil,
+                                    isCorrect: game.showResult && game.correctHand == "B",
+                                    isIncorrect: game.showResult && game.selectedHand == "B" && game.correctHand != "B",
+                                    showHandType: game.showResult && game.selectedHand != game.correctHand,
+                                    metrics: metrics
+                                ) {
+                                    game.selectHand("B")
+                                }
+                            }
+                            .padding(.horizontal, metrics.handContainerPadding)
                         }
-                        .padding(.horizontal, metrics.handContainerPadding)
                     }
 
                     Spacer()
@@ -143,32 +172,36 @@ struct GameScreen: View {
 struct LayoutMetrics {
     let size: CGSize
 
-    // Base scale factor based on screen width
+    // Detect portrait orientation
+    var isPortrait: Bool { size.height > size.width }
+
+    // Base scale factor based on screen dimensions
     var scale: CGFloat {
         let baseWidth: CGFloat = 1024 // iPad baseline
-        return min(max(size.width / baseWidth, 0.6), 1.3)
+        let widthScale = size.width / baseWidth
+        return min(max(widthScale, 0.5), 1.3)
     }
 
-    // Spacing
-    var verticalSpacing: CGFloat { 20 * scale }
-    var horizontalPadding: CGFloat { 20 * scale }
-    var handSpacing: CGFloat { 40 * scale }
-    var handContainerPadding: CGFloat { 40 * scale }
+    // Spacing - reduced in portrait mode
+    var verticalSpacing: CGFloat { (isPortrait ? 12 : 20) * scale }
+    var horizontalPadding: CGFloat { (isPortrait ? 12 : 20) * scale }
+    var handSpacing: CGFloat { (isPortrait ? 16 : 40) * scale }
+    var handContainerPadding: CGFloat { (isPortrait ? 12 : 40) * scale }
 
     // Progress dots
     var dotSize: CGFloat {
         // Calculate based on available width, ensuring all 20 dots fit
         let availableWidth = size.width - (2 * horizontalPadding)
-        let spacing: CGFloat = 10 * scale
+        let spacing: CGFloat = (isPortrait ? 6 : 10) * scale
         let calculatedSize = (availableWidth - (19 * spacing)) / 20
-        return min(max(calculatedSize, 24), 36) // Clamp between 24 and 36
+        return min(max(calculatedSize, 20), 36) // Clamp between 20 and 36
     }
-    var dotSpacing: CGFloat { 10 * scale }
+    var dotSpacing: CGFloat { (isPortrait ? 6 : 10) * scale }
     var dotFontSize: CGFloat { dotSize * 0.44 }
 
     // Stats
-    var statValueFontSize: CGFloat { 36 * scale }
-    var statLabelFontSize: CGFloat { 14 * scale }
+    var statValueFontSize: CGFloat { (isPortrait ? 28 : 36) * scale }
+    var statLabelFontSize: CGFloat { (isPortrait ? 12 : 14) * scale }
 
     // Buttons
     var buttonIconSize: CGFloat { 18 * scale }
@@ -180,18 +213,20 @@ struct LayoutMetrics {
     // Game over
     var gameOverFontSize: CGFloat { 24 * scale }
 
-    // Hand container
-    var handLabelFontSize: CGFloat { 28 * scale }
-    var handTypeFontSize: CGFloat { 20 * scale }
-    var handContainerInnerPadding: CGFloat { 30 * scale }
+    // Hand container - reduced padding in portrait
+    var handLabelFontSize: CGFloat { (isPortrait ? 22 : 28) * scale }
+    var handTypeFontSize: CGFloat { (isPortrait ? 16 : 20) * scale }
+    var handContainerInnerPadding: CGFloat { (isPortrait ? 12 : 30) * scale }
 
     // Card size selection based on available space
     var cardSize: CardView.CardSize {
-        // Calculate available width per hand (accounting for spacing and padding)
-        let handsAreaWidth = size.width - (2 * handContainerPadding) - handSpacing
-        let perHandWidth = handsAreaWidth / 2
+        // Calculate available width per hand
+        let handsAreaWidth = size.width - (2 * handContainerPadding)
+        // In portrait, hands are stacked vertically so each gets full width
+        // In landscape, hands are side by side so each gets half
+        let perHandWidth = isPortrait ? handsAreaWidth : (handsAreaWidth - handSpacing) / 2
         // Each hand has 5 cards with spacing
-        let cardSpacing: CGFloat = 8
+        let cardSpacing: CGFloat = 6
         let availableCardWidth = (perHandWidth - (4 * cardSpacing) - (2 * handContainerInnerPadding)) / 5
 
         if availableCardWidth >= 85 {
